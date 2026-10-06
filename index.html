@@ -48,6 +48,20 @@
         .header h1 { margin: 0; font-size: 1.6rem; color: #ffffff; }
         .header h2 { margin: 5px 0 0 0; font-size: 1rem; color: var(--accent-gold); font-weight: 600; }
 
+        /* Admin-Wechsel-Leiste */
+        .admin-bar {
+            background: rgba(234, 179, 8, 0.1);
+            border: 1px dashed var(--accent-gold);
+            border-radius: 10px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
         /* Personalisierter Spieler-Header */
         .player-header-card {
             background: var(--card-bg);
@@ -59,6 +73,7 @@
             align-items: center;
             gap: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
         }
         .player-avatar {
             width: 70px;
@@ -74,6 +89,18 @@
         }
         .player-info h2 { margin: 0; font-size: 1.4rem; color: #ffffff; }
         .player-info p { margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-muted); }
+        
+        /* Schöner, größerer Gold-Rahmen für den AVG direkt links neben dem Profil */
+        .player-avg-badge {
+            background: rgba(234, 179, 8, 0.1);
+            border: 2px solid var(--accent-gold);
+            border-radius: 12px;
+            padding: 10px 20px;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.15);
+        }
+        .player-avg-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; }
+        .player-avg-val { font-size: 1.7rem; font-weight: 900; color: var(--accent-gold); line-height: 1.1; }
 
         .profile-select-card {
             background: var(--card-bg);
@@ -113,19 +140,19 @@
 
         .stats-summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
             margin-bottom: 25px;
         }
         .stat-box {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 10px;
-            padding: 15px;
+            padding: 12px;
             text-align: center;
         }
-        .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
-        .stat-val { font-size: 1.3rem; font-weight: bold; color: var(--accent-gold); margin-top: 5px; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+        .stat-val { font-size: 1.2rem; font-weight: bold; color: var(--accent-gold); margin-top: 4px; }
 
         .charts-grid {
             display: grid;
@@ -207,15 +234,38 @@
     <!-- Dashboard Content (Erst nach Login sichtbar) -->
     <div id="dashboardContent" style="display: none;">
         
-        <!-- Personalisierter Spieler-Header mit Bild & Team -->
+        <!-- Admin-Schnellwechsel-Leiste -->
+        <div class="admin-bar" id="adminBar" style="display: none;">
+            <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent-gold);">
+                🛠 Admin-Modus: Anderen Spieler anzeigen
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <select id="adminPlayerSwitch" onchange="switchViewAsAdmin(this.value)" style="padding: 6px 10px; font-size: 0.85rem; min-width: 200px;">
+                    <option value="">-- Spieler wählen --</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Personalisierter Spieler-Header mit Bild, Gold-AVG-Rahmen links & Name -->
         <div class="player-header-card">
+            <!-- Profilbild -->
             <img id="playerAvatarImg" class="player-avatar" src="" alt="Avatar" onerror="this.src='https://cdn.jsdelivr.net/npm/@mdi/svg@7.2.96/svg/account.svg'">
+            
+            <!-- AVG direkt links neben dem Profil in schickem Gold-Rahmen -->
+            <div class="player-avg-badge">
+                <div class="player-avg-label">3-Dart AVG</div>
+                <div class="player-avg-val" id="headerAvgVal">0.00</div>
+            </div>
+
+            <!-- Name und Team -->
             <div class="player-info">
                 <h2 id="headerPlayerName">-</h2>
                 <p><span id="headerTeamBadge" class="team-badge">Team -</span> | Stamm-Mannschaft Dashboard</p>
             </div>
+
+            <!-- Abmelden-Button ganz rechts -->
             <div style="margin-left: auto;">
-                <button class="login-btn" style="background:var(--danger);" onclick="handleLogout()">Abmelden</button>
+                <button class="login-btn" style="background:var(--danger); padding: 8px 15px; font-size: 0.85rem;" onclick="handleLogout()">Abmelden</button>
             </div>
         </div>
 
@@ -226,16 +276,16 @@
                 <div class="stat-val" id="sumMatches">0</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">Average (Schnitt)</div>
-                <div class="stat-val" id="sumAvg" style="color: var(--accent);">0.00</div>
-            </div>
-            <div class="stat-box">
                 <div class="stat-label">Bilanz (G:V)</div>
                 <div class="stat-val" id="sumBilanz" style="color: var(--success);">0:0</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Ø Darts / Leg</div>
                 <div class="stat-val" id="sumDartsLeg">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Bestes Leg</div>
+                <div class="stat-val" id="sumShortLeg">-</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">High-Finish</div>
@@ -325,6 +375,7 @@
     let allRawMatches = [];
     let playerStatsMap = {};
     let chartsInstances = {};
+    let loggedInUser = "";
 
     // Plugin für Balken-Werte
     const valueAboveBarPlugin = {
@@ -396,9 +447,12 @@
 
     Chart.register(valueAboveBarPlugin, valueAbovePointPlugin, doughnutCenterValuesPlugin);
 
-    function populateDropdown() {
+    function populateDropdowns() {
         const select = document.getElementById('playerSelect');
+        const adminSelect = document.getElementById('adminPlayerSwitch');
+        
         select.innerHTML = '<option value="">-- Bitte wähle deinen Namen --</option>';
+        adminSelect.innerHTML = '<option value="">-- Anderen Spieler anzeigen --</option>';
         
         const sortedPlayers = Object.keys(PLAYER_TEAM_MAP).sort((a, b) => {
             let teamA = PLAYER_TEAM_MAP[a];
@@ -410,15 +464,20 @@
         });
 
         sortedPlayers.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = `${name} (Team ${PLAYER_TEAM_MAP[name]})`;
-            select.appendChild(opt);
+            const opt1 = document.createElement('option');
+            opt1.value = name;
+            opt1.textContent = `${name} (Team ${PLAYER_TEAM_MAP[name]})`;
+            select.appendChild(opt1);
+
+            const opt2 = document.createElement('option');
+            opt2.value = name;
+            opt2.textContent = `${name} (Team ${PLAYER_TEAM_MAP[name]})`;
+            adminSelect.appendChild(opt2);
         });
     }
 
     async function initDashboard() {
-        populateDropdown();
+        populateDropdowns();
 
         try {
             allRawMatches = await fetchSupabaseMatches();
@@ -431,14 +490,33 @@
 
             const savedName = localStorage.getItem("tvk_logged_player");
             if (savedName && PLAYER_TEAM_MAP[savedName]) {
+                loggedInUser = savedName;
                 document.getElementById('playerSelect').value = savedName;
                 document.getElementById('loginCard').style.display = 'none';
+                checkAdminRights(savedName);
                 loadPlayerDashboard(savedName);
             }
         } catch (e) {
             console.error("Fehler beim Laden:", e);
             document.getElementById('loadingIndicator').textContent = '⚠ Fehler beim Laden';
         }
+    }
+
+    function checkAdminRights(username) {
+        const admins = ["Jürgen Schützendorf"];
+        const adminBar = document.getElementById('adminBar');
+        
+        if (admins.includes(username)) {
+            adminBar.style.display = 'flex';
+            document.getElementById('adminPlayerSwitch').value = username;
+        } else {
+            adminBar.style.display = 'none';
+        }
+    }
+
+    function switchViewAsAdmin(playerName) {
+        if (!playerName) return;
+        loadPlayerDashboard(playerName);
     }
 
     async function fetchPlayerStatsTable() {
@@ -562,8 +640,10 @@
 
         if (enteredPassword === correctPassword) {
             errorMsg.style.display = 'none';
+            loggedInUser = playerName;
             localStorage.setItem("tvk_logged_player", playerName);
             document.getElementById('loginCard').style.display = 'none';
+            checkAdminRights(playerName);
             loadPlayerDashboard(playerName);
         } else {
             errorMsg.style.display = 'block';
@@ -572,6 +652,7 @@
 
     function handleLogout() {
         localStorage.removeItem("tvk_logged_player");
+        loggedInUser = "";
         document.getElementById('playerPassword').value = '';
         document.getElementById('dashboardContent').style.display = 'none';
         document.getElementById('loginCard').style.display = 'flex';
@@ -610,7 +691,9 @@
         playerMatches.sort((a, b) => a.spieltag - b.spieltag);
 
         let totalMatches = playerMatches.length;
-        let wins = 0, losses = 0, legsWon = 0, legsLost = 0, maxHF = 0, total180s = 0, totalDartsWonLegs = 0, totalLegsCountForDarts = 0;
+        let wins = 0, losses = 0, legsWon = 0, legsLost = 0, maxHF = 0, total180s = 0;
+        let totalDartsWonLegs = 0, totalLegsCountForDarts = 0;
+        let bestShortLegOverall = 999;
 
         let historyHTML = '';
         playerMatches.forEach(m => {
@@ -627,15 +710,21 @@
             if (m.hf > maxHF) maxHF = m.hf;
             total180s += m.s180;
 
-            // Darts pro Leg auswerten
             if (m.dartsStr) {
                 let dartsList = m.dartsStr.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
                 let lw = m.ergebnis && m.ergebnis.includes(":") ? parseInt(m.ergebnis.split(":")[0]) || 0 : 0;
+                
                 if (lw > 0 && dartsList.length > 0) {
                     let legsToCount = Math.min(lw, dartsList.length);
+                    let matchMinLeg = 999;
                     for (let i = 0; i < legsToCount; i++) {
-                        totalDartsWonLegs += dartsList[i];
+                        let dartVal = dartsList[i];
+                        totalDartsWonLegs += dartVal;
                         totalLegsCountForDarts++;
+                        if (dartVal < matchMinLeg) matchMinLeg = dartVal;
+                    }
+                    if (matchMinLeg < 999 && matchMinLeg < bestShortLegOverall) {
+                        bestShortLegOverall = matchMinLeg;
                     }
                 }
             }
@@ -660,11 +749,15 @@
         }
 
         let avgDartsPerLeg = totalLegsCountForDarts > 0 ? (totalDartsWonLegs / totalLegsCountForDarts) : 0;
+        let finalBestShortLeg = bestShortLegOverall < 999 ? `${bestShortLegOverall} Darts` : '-';
+
+        // AVG im Gold-Rahmen oben links setzen
+        document.getElementById('headerAvgVal').textContent = overallAvg > 0 ? overallAvg.toFixed(2) : '0.00';
 
         document.getElementById('sumMatches').textContent = totalMatches;
-        document.getElementById('sumAvg').textContent = overallAvg.toFixed(2);
         document.getElementById('sumBilanz').textContent = `${wins} : ${losses}`;
         document.getElementById('sumDartsLeg').textContent = avgDartsPerLeg > 0 ? Math.round(avgDartsPerLeg) : '-';
+        document.getElementById('sumShortLeg').textContent = finalBestShortLeg;
         document.getElementById('sumHighFinish').textContent = maxHF > 0 ? maxHF : '-';
         document.getElementById('sum180s').textContent = total180s;
         document.getElementById('matchHistoryBody').innerHTML = historyHTML || `<tr><td colspan="7" style="padding:15px; color:var(--text-muted);">Keine Matches in der Stamm-Mannschaft gefunden.</td></tr>`;
