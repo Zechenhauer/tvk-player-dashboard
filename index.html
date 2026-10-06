@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Kapellen 1919 e.V. - Persönliches Leistungs-Dashboard</title>
+    <!-- Supabase & Chart.js über CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b1329;
+            --card-bg: #162238;
+            --card-border: #23334d;
+            --accent: #3b82f6;
+            --accent-gold: #eab308;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+
+            --team1-bg: #ff0a00;
+            --team2-bg: #00f5ff;
+            --team3-bg: #ffd700;
+            --team4-bg: #D3D3D3;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container { width: 100%; max-width: 1100px; }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 15px;
+        }
+        .header h1 { margin: 0; font-size: 1.6rem; color: #ffffff; }
+        .header h2 { margin: 5px 0 0 0; font-size: 1rem; color: var(--accent-gold); font-weight: 600; }
+
+        /* Personalisierter Spieler-Header */
+        .player-header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .player-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-gold);
+            background-color: #0b1329;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+        .player-info h2 { margin: 0; font-size: 1.4rem; color: #ffffff; }
+        .player-info p { margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-muted); }
+
+        .profile-select-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+        select, input[type="password"] {
+            background: #0b1329;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            min-width: 220px;
+        }
+        .login-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .login-btn:hover { background: #2563eb; }
+
+        .stats-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+        .stat-val { font-size: 1.3rem; font-weight: bold; color: var(--accent-gold); margin-top: 5px; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        @media(min-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+        .chart-title {
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+
+        .team-badge { 
+            display: inline-block; 
+            font-size: 0.75rem; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            font-weight: 800; 
+        }
+        .badge-1 { background-color: var(--team1-bg); color: #ffffff; }
+        .badge-2 { background-color: var(--team2-bg); color: #000000; }
+        .badge-3 { background-color: var(--team3-bg); color: #000000; }
+        .badge-4 { background-color: var(--team4-bg); color: #000000; }
+
+        .table-responsive { overflow-x: auto; border-radius: 10px; border: 1px solid var(--card-border); background: var(--card-bg); margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: center; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid var(--card-border); white-space: nowrap; }
+        th { background: #0d172a; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+
+        .loading-box { text-align: center; padding: 10px; color: var(--accent-gold); font-size: 0.85rem; width: 100%; }
+        .error-msg { color: var(--danger); font-size: 0.85rem; text-align: center; width: 100%; margin-top: 5px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🎯 TV KAPELLEN 1919 e.V.</h1>
+        <h2>Persönliches Leistungs-Dashboard</h2>
+    </div>
+
+    <!-- Login-Karte -->
+    <div class="profile-select-card" id="loginCard">
+        <div class="input-group">
+            <label for="playerSelect">Spieler auswählen:</label>
+            <select id="playerSelect">
+                <option value="">-- Bitte wähle deinen Namen --</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="playerPassword">Passwort:</label>
+            <input type="password" id="playerPassword" placeholder="Dein Passwort">
+        </div>
+        <div>
+            <button class="login-btn" onclick="handleLogin()">Anmelden</button>
+        </div>
+        <div id="loadingIndicator" class="loading-box">🔄 Lade Live-Daten...</div>
+        <div id="errorMsg" class="error-msg">Falsches Passwort! Bitte versuche es erneut.</div>
+    </div>
+
+    <!-- Dashboard Content (Erst nach Login sichtbar) -->
+    <div id="dashboardContent" style="display: none;">
+        
+        <!-- Personalisierter Spieler-Header mit Bild & Team -->
+        <div class="player-header-card">
+            <img id="playerAvatarImg" class="player-avatar" src="" alt="Avatar" onerror="this.src='https://cdn.jsdelivr.net/npm/@mdi/svg@7.2.96/svg/account.svg'">
+            <div class="player-info">
+                <h2 id="headerPlayerName">-</h2>
+                <p><span id="headerTeamBadge" class="team-badge">Team -</span> | Stamm-Mannschaft Dashboard</p>
+            </div>
+            <div style="margin-left: auto;">
+                <button class="login-btn" style="background:var(--danger);" onclick="handleLogout()">Abmelden</button>
+            </div>
+        </div>
+
+        <!-- KPI Zusammenfassung -->
+        <div class="stats-summary-grid">
+            <div class="stat-box">
+                <div class="stat-label">Matches</div>
+                <div class="stat-val" id="sumMatches">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Average (Schnitt)</div>
+                <div class="stat-val" id="sumAvg" style="color: var(--accent);">0.00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Bilanz (G:V)</div>
+                <div class="stat-val" id="sumBilanz" style="color: var(--success);">0:0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Ø Darts / Leg</div>
+                <div class="stat-val" id="sumDartsLeg">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">High-Finish</div>
+                <div class="stat-val" id="sumHighFinish">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">180er</div>
+                <div class="stat-val" id="sum180s">0</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <!-- 1. Formverlauf -->
+            <div class="chart-card full-width">
+                <div class="chart-title">📈 Formverlauf (3-Dart-AVG in deiner Stamm-Mannschaft)</div>
+                <canvas id="avgTrendChart"></canvas>
+            </div>
+
+            <!-- 2. Scoring-Verteilung -->
+            <div class="chart-card full-width">
+                <div class="chart-title">📊 Scoring-Verteilung</div>
+                <canvas id="scoringChart"></canvas>
+            </div>
+
+            <!-- 3. Legs -->
+            <div class="chart-card">
+                <div class="chart-title">🎯 Legs (Gewonnene vs. Verlorene Legs)</div>
+                <canvas id="legsChart"></canvas>
+            </div>
+
+            <!-- 4. Average nach Aufnahmen -->
+            <div class="chart-card">
+                <div class="chart-title">🎯 Average nach Aufnahmen (9d, 12d, 15d, 18d)</div>
+                <canvas id="dartsAvgChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Detail-Tabelle der eigenen Stamm-Matches -->
+        <div class="chart-title" style="margin-top: 10px;">📋 Match-Historie deiner Stamm-Mannschaft</div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Spieltag</th>
+                        <th>Team</th>
+                        <th>Gegner / Block</th>
+                        <th>Ergebnis</th>
+                        <th>3-Dart AVG</th>
+                        <th>High Finish</th>
+                        <th>180</th>
+                    </tr>
+                </thead>
+                <tbody id="matchHistoryBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://lhusylpjnujlqomougmg.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_yXEueWILvAq-Vm2VfTuYyg_BIQeE1KK';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const PLAYER_TEAM_MAP = {
+        "Patrick Seitz": "1", "Tim Siegel": "1", "Sascha Bien": "1", "Dominik Helmke": "1",
+        "Stefan Melcher": "1", "Jan Krabbe": "1", "Fabio Padovano": "1", "Dirk Kraus": "1",
+        "Robert Geyer": "1", "Joel Wielinski": "1", "Denis Vanzidler": "1",
+        
+        "Florian Weindorf": "2", "Daniel Simanowitz": "2", "Danny Voß": "2", "Markus Elgersma": "2",
+        "Markus Thiele": "2", "Christian Schreiber": "2", "Dominik Herz": "2", "Thomas Franzen": "2",
+        "Philip Möller": "2", "Holger Weberpold": "2", "Andre Pogoda": "2",
+        
+        "Jürgen Schützendorf": "3", "Niklas Weichert": "3", "Wolfram Senger": "3", "Ludger Schledorn": "3",
+        "Thomas Kliver": "3", "Markus Ginsel": "3", "Andreas Denner": "3", "Markus Lenz": "3",
+        "Florian Hartwich": "3", "Michael Müller": "3", "Lars Neutag": "3", "Yannick Steffes": "3",
+        "Leon Gerber": "3", "Gregor Marek": "3", "Holger Overmeyer": "3",
+        
+        "Britta Roghmans": "4", "Scott Jonen": "4", "Björn Mentzen": "4", "Lars Hufen": "4",
+        "Jesper Neutag": "4", "Brian Müller": "4", "Leon Overmann": "4", "Mark Bock": "4",
+        "Dirk Grunert": "4", "Marcel Streuff": "4", "Heinz Lukas": "4", "Friedhelm Schmidt-Cremer": "4", "Lucas Mentzen": "4"
+    };
+
+    const NAME_ALIASES = {
+        "patrick seitz": "patrik seitz"
+    };
+
+    let allRawMatches = [];
+    let playerStatsMap = {};
+    let chartsInstances = {};
+
+    // Plugin für Balken-Werte
+    const valueAboveBarPlugin = {
+        id: 'valueAboveBar',
+        afterDatasetsDraw(chart) {
+            if (chart.config.type !== 'bar') return;
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((element, index) => {
+                    const value = dataset.data[index];
+                    if (value > 0) {
+                        ctx.fillStyle = '#f8fafc';
+                        ctx.font = 'bold 12px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        const position = element.tooltipPosition();
+                        ctx.fillText(value, position.x, position.y - 6);
+                    }
+                });
+            });
+        }
+    };
+
+    // Plugin für Werte direkt über den Punkten im Liniendiagramm
+    const valueAbovePointPlugin = {
+        id: 'valueAbovePoint',
+        afterDatasetsDraw(chart) {
+            if (chart.config.type !== 'line') return;
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((element, index) => {
+                    const value = dataset.data[index];
+                    if (value !== null && value !== undefined) {
+                        ctx.fillStyle = '#eab308';
+                        ctx.font = 'bold 12px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(value.toFixed(2), element.x, element.y - 10);
+                    }
+                });
+            });
+        }
+    };
+
+    // Plugin für Werte direkt im Doughnut-Kreisdiagramm (Legs)
+    const doughnutCenterValuesPlugin = {
+        id: 'doughnutCenterValues',
+        afterDatasetsDraw(chart) {
+            if (chart.config.type !== 'doughnut') return;
+            const { ctx } = chart;
+            const dataset = chart.data.datasets[0];
+            const meta = chart.getDatasetMeta(0);
+
+            meta.data.forEach((element, index) => {
+                const value = dataset.data[index];
+                if (value > 0) {
+                    const { x, y } = element.tooltipPosition();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 13px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(value, x, y);
+                }
+            });
+        }
+    };
+
+    Chart.register(valueAboveBarPlugin, valueAbovePointPlugin, doughnutCenterValuesPlugin);
+
+    function populateDropdown() {
+        const select = document.getElementById('playerSelect');
+        select.innerHTML = '<option value="">-- Bitte wähle deinen Namen --</option>';
+        
+        const sortedPlayers = Object.keys(PLAYER_TEAM_MAP).sort((a, b) => {
+            let teamA = PLAYER_TEAM_MAP[a];
+            let teamB = PLAYER_TEAM_MAP[b];
+            if (teamA !== teamB) {
+                return teamA.localeCompare(teamB, undefined, {numeric: true});
+            }
+            return a.localeCompare(b);
+        });
+
+        sortedPlayers.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = `${name} (Team ${PLAYER_TEAM_MAP[name]})`;
+            select.appendChild(opt);
+        });
+    }
+
+    async function initDashboard() {
+        populateDropdown();
+
+        try {
+            allRawMatches = await fetchSupabaseMatches();
+            playerStatsMap = await fetchPlayerStatsTable();
+
+            document.getElementById('loadingIndicator').textContent = '✓ Live-Daten bereit';
+            setTimeout(() => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+            }, 1500);
+
+            const savedName = localStorage.getItem("tvk_logged_player");
+            if (savedName && PLAYER_TEAM_MAP[savedName]) {
+                document.getElementById('playerSelect').value = savedName;
+                document.getElementById('loginCard').style.display = 'none';
+                loadPlayerDashboard(savedName);
+            }
+        } catch (e) {
+            console.error("Fehler beim Laden:", e);
+            document.getElementById('loadingIndicator').textContent = '⚠ Fehler beim Laden';
+        }
+    }
+
+    async function fetchPlayerStatsTable() {
+        try {
+            let { data, error } = await supabaseClient
+                .from('player_stats_2026')
+                .select('*');
+
+            if (error) return {};
+
+            let map = {};
+            if (data) {
+                data.forEach(row => {
+                    const getCol = (keys) => {
+                        for (let k of keys) {
+                            for (let rk in row) {
+                                if (rk.toLowerCase() === k.toLowerCase()) return row[rk];
+                            }
+                        }
+                        return null;
+                    };
+
+                    let name = getCol(['name', 'spieler', 'player_name', 'spieler_kapellen']) || "";
+                    let password = getCol(['password', 'passwort', 'pin']) || "1234";
+                    let avatar = getCol(['avatar', 'bild', 'foto', 'image_url']) || "";
+                    
+                    const cleanVal = (val) => {
+                        if (val === null || val === undefined) return 0;
+                        let s = String(val).replace('Ø', '').trim();
+                        let cl = s.replace(',', '.');
+                        let num = parseFloat(cl);
+                        return isNaN(num) ? 0 : parseFloat(num.toFixed(1));
+                    };
+
+                    let schnitt = cleanVal(getCol(['schnitt', 'avg', 'average']));
+
+                    if (name) {
+                        let cleanName = String(name).trim().toLowerCase().replace(/\s+/g, ' ');
+                        map[cleanName] = {
+                            name: name.trim(),
+                            password: String(password).trim(),
+                            avatar: avatar,
+                            schnitt: schnitt,
+                            o9d: cleanVal(getCol(['ø9d', 'o9d', '09d', '9d', 'darts_9'])),
+                            o12d: cleanVal(getCol(['ø12d', 'o12d', '012d', '12d', 'darts_12'])),
+                            o15d: cleanVal(getCol(['ø15d', 'o15d', '015d', '15d', 'darts_15'])),
+                            o18d: cleanVal(getCol(['ø18d', 'o18d', '018d', '18d', 'darts_18']))
+                        };
+                    }
+                });
+            }
+            return map;
+        } catch (e) {
+            return {};
+        }
+    }
+
+    async function fetchSupabaseMatches() {
+        const teamConfigs = [
+            { teamNum: "1", tableSpieltage: "spieltage_t1", tableMatches: "matches_t1", tableScoring: "scoring_stats_t1" },
+            { teamNum: "2", tableSpieltage: "spieltage_t2", tableMatches: "matches_t2", tableScoring: "scoring_stats_t2" },
+            { teamNum: "3", tableSpieltage: "spieltage", tableMatches: "matches", tableScoring: "scoring_stats" },
+            { teamNum: "4", tableSpieltage: "spieltage_t4", tableMatches: "matches_t4", tableScoring: "scoring_stats_t4" }
+        ];
+
+        let rawMatches = [];
+        for (const cfg of teamConfigs) {
+            try {
+                const { data } = await supabaseClient
+                    .from(cfg.tableSpieltage)
+                    .select(`*, ${cfg.tableMatches} (*, ${cfg.tableScoring} (*))`);
+
+                if (data) {
+                    data.forEach(st => {
+                        let matchesList = st[cfg.tableMatches] || [];
+                        matchesList.forEach(m => {
+                            let scoring = (m[cfg.tableScoring] && m[cfg.tableScoring].length > 0) ? m[cfg.tableScoring][0] : {};
+                            let rawPlayerName = m.spieler_kapellen || "";
+                            
+                            rawMatches.push({
+                                team: cfg.teamNum,
+                                spieltag: st.spieltag_nummer,
+                                gegnerTeam: st.gegner_team || '-',
+                                block: m.block_name || "Einzel",
+                                spieler: rawPlayerName.trim(),
+                                ergebnis: m.ergebnis || "",
+                                avg: m.avg || 0,
+                                dartsStr: m.darts || "",
+                                s60: scoring.score_60 || 0,
+                                s80: scoring.score_80 || 0,
+                                s100: scoring.score_100 || 0,
+                                s140: scoring.score_140 || 0,
+                                s180: scoring.score_180 || 0,
+                                hf: scoring.high_finish || 0
+                            });
+                        });
+                    });
+                }
+            } catch (err) {
+                console.error("Fehler beim Laden:", err);
+            }
+        }
+        return rawMatches;
+    }
+
+    function handleLogin() {
+        const playerName = document.getElementById('playerSelect').value;
+        const enteredPassword = document.getElementById('playerPassword').value;
+        const errorMsg = document.getElementById('errorMsg');
+
+        if (!playerName) {
+            alert("Bitte wähle zuerst deinen Namen aus.");
+            return;
+        }
+
+        let lowerName = playerName.trim().toLowerCase().replace(/\s+/g, ' ');
+        let statsSearchName = NAME_ALIASES[lowerName] || lowerName;
+        let playerData = playerStatsMap[statsSearchName] || playerStatsMap[lowerName];
+
+        let correctPassword = playerData ? playerData.password : "1234";
+
+        if (enteredPassword === correctPassword) {
+            errorMsg.style.display = 'none';
+            localStorage.setItem("tvk_logged_player", playerName);
+            document.getElementById('loginCard').style.display = 'none';
+            loadPlayerDashboard(playerName);
+        } else {
+            errorMsg.style.display = 'block';
+        }
+    }
+
+    function handleLogout() {
+        localStorage.removeItem("tvk_logged_player");
+        document.getElementById('playerPassword').value = '';
+        document.getElementById('dashboardContent').style.display = 'none';
+        document.getElementById('loginCard').style.display = 'flex';
+    }
+
+    function loadPlayerDashboard(playerName) {
+        const contentDiv = document.getElementById('dashboardContent');
+        contentDiv.style.display = 'block';
+
+        const baseTeam = PLAYER_TEAM_MAP[playerName];
+        let lowerName = playerName.trim().toLowerCase().replace(/\s+/g, ' ');
+        let matchSearchName = NAME_ALIASES[lowerName] || lowerName;
+        let playerData = playerStatsMap[matchSearchName] || playerStatsMap[lowerName];
+
+        document.getElementById('headerPlayerName').textContent = playerName;
+        
+        const badge = document.getElementById('headerTeamBadge');
+        badge.textContent = `Team ${baseTeam}`;
+        badge.className = `team-badge badge-${baseTeam}`;
+
+        const avatarImg = document.getElementById('playerAvatarImg');
+        if (playerData && playerData.avatar) {
+            avatarImg.src = playerData.avatar;
+        } else {
+            avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerName)}&background=162238&color=eab308&bold=true`;
+        }
+
+        const playerMatches = allRawMatches.filter(m => {
+            let mPlayerLower = m.spieler.toLowerCase().replace(/\s+/g, ' ');
+            let isThisPlayer = mPlayerLower === lowerName || mPlayerLower === matchSearchName;
+            let isEinzel = !m.block.toLowerCase().includes("doppel") && !m.spieler.includes("/");
+            let isStammTeamMatch = baseTeam ? (m.team === baseTeam) : true;
+            return isThisPlayer && isEinzel && isStammTeamMatch && m.avg > 0;
+        });
+
+        playerMatches.sort((a, b) => a.spieltag - b.spieltag);
+
+        let totalMatches = playerMatches.length;
+        let wins = 0, losses = 0, legsWon = 0, legsLost = 0, maxHF = 0, total180s = 0, totalDartsWonLegs = 0, totalLegsCountForDarts = 0;
+
+        let historyHTML = '';
+        playerMatches.forEach(m => {
+            let isWin = false;
+            if (m.ergebnis && m.ergebnis.includes(":")) {
+                let p = m.ergebnis.split(":");
+                let lw = parseInt(p[0]) || 0;
+                let ll = parseInt(p[1]) || 0;
+                legsWon += lw;
+                legsLost += ll;
+                if (lw > ll) { wins++; isWin = true; }
+                else if (ll > lw) { losses++; }
+            }
+            if (m.hf > maxHF) maxHF = m.hf;
+            total180s += m.s180;
+
+            // Darts pro Leg auswerten
+            if (m.dartsStr) {
+                let dartsList = m.dartsStr.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
+                let lw = m.ergebnis && m.ergebnis.includes(":") ? parseInt(m.ergebnis.split(":")[0]) || 0 : 0;
+                if (lw > 0 && dartsList.length > 0) {
+                    let legsToCount = Math.min(lw, dartsList.length);
+                    for (let i = 0; i < legsToCount; i++) {
+                        totalDartsWonLegs += dartsList[i];
+                        totalLegsCountForDarts++;
+                    }
+                }
+            }
+
+            historyHTML += `
+                <tr>
+                    <td>Spieltag ${m.spieltag}</td>
+                    <td><span class="team-badge badge-${m.team}">TVK ${m.team}</span></td>
+                    <td>${m.block} vs. ${m.gegnerTeam}</td>
+                    <td><span style="color:${isWin ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${m.ergebnis || '-'}</span></td>
+                    <td style="color:var(--accent-gold); font-weight:bold;">${m.avg.toFixed(2)}</td>
+                    <td>${m.hf || '-'}</td>
+                    <td>${m.s180 > 0 ? m.s180 : '-'}</td>
+                </tr>
+            `;
+        });
+
+        let overallAvg = playerData ? playerData.schnitt : 0;
+        if (overallAvg === 0 && totalMatches > 0) {
+            let sumAvgs = playerMatches.reduce((acc, m) => acc + m.avg, 0);
+            overallAvg = sumAvgs / totalMatches;
+        }
+
+        let avgDartsPerLeg = totalLegsCountForDarts > 0 ? (totalDartsWonLegs / totalLegsCountForDarts) : 0;
+
+        document.getElementById('sumMatches').textContent = totalMatches;
+        document.getElementById('sumAvg').textContent = overallAvg.toFixed(2);
+        document.getElementById('sumBilanz').textContent = `${wins} : ${losses}`;
+        document.getElementById('sumDartsLeg').textContent = avgDartsPerLeg > 0 ? Math.round(avgDartsPerLeg) : '-';
+        document.getElementById('sumHighFinish').textContent = maxHF > 0 ? maxHF : '-';
+        document.getElementById('sum180s').textContent = total180s;
+        document.getElementById('matchHistoryBody').innerHTML = historyHTML || `<tr><td colspan="7" style="padding:15px; color:var(--text-muted);">Keine Matches in der Stamm-Mannschaft gefunden.</td></tr>`;
+
+        const labels = playerMatches.map(m => `ST ${m.spieltag}`);
+        const avgs = playerMatches.map(m => m.avg);
+
+        let total60 = playerMatches.reduce((acc, m) => acc + m.s60, 0);
+        let total80 = playerMatches.reduce((acc, m) => acc + m.s80, 0);
+        let total100 = playerMatches.reduce((acc, m) => acc + m.s100, 0);
+        let total140 = playerMatches.reduce((acc, m) => acc + m.s140, 0);
+        let total180 = playerMatches.reduce((acc, m) => acc + m.s180, 0);
+
+        renderChart('avgTrendChart', 'line', labels, avgs, '3-Dart AVG', '#3b82f6', false, null, null, null, 4);
+        renderChart('scoringChart', 'bar', ['60+', '80+', '100+', '140+', '180'], [total60, total80, total100, total140, total180], 'Anzahl', '#eab308', true, 0, null, null, 2);
+        renderChart('legsChart', 'doughnut', ['Gewonnene Legs', 'Verlorene Legs'], [legsWon, legsLost], 'Legs', ['#22c55e', '#ef4444'], false, null, null, null, 2);
+        
+        let o9dVal = playerData ? playerData.o9d : 0;
+        let o12dVal = playerData ? playerData.o12d : 0;
+        let o15dVal = playerData ? playerData.o15d : 0;
+        let o18dVal = playerData ? playerData.o18d : 0;
+        renderChart('dartsAvgChart', 'bar', ['9 Darts', '12 Darts', '15 Darts', '18 Darts'], [o9dVal, o12dVal, o15dVal, o18dVal], 'AVG', '#3b82f6', true, 20, 90, 10, 2);
+    }
+
+    function renderChart(canvasId, type, labels, data, labelName, color, addGrace, minVal, maxVal, stepSize, borderWidth) {
+        if (chartsInstances[canvasId]) {
+            chartsInstances[canvasId].destroy();
+        }
+
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        chartsInstances[canvasId] = new Chart(ctx, {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: labelName,
+                    data: data,
+                    backgroundColor: color,
+                    borderColor: type === 'line' ? color : undefined,
+                    borderWidth: borderWidth || 2,
+                    tension: 0.2,
+                    pointRadius: type === 'line' ? 5 : undefined,
+                    pointHoverRadius: type === 'line' ? 7 : undefined
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#f8fafc' } }
+                },
+                scales: type !== 'doughnut' ? {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#23334d' } },
+                    y: { 
+                        ticks: { 
+                            color: '#94a3b8',
+                            stepSize: stepSize !== null ? stepSize : undefined
+                        }, 
+                        grid: { color: '#23334d' },
+                        min: minVal !== null ? minVal : undefined,
+                        max: maxVal !== null ? maxVal : undefined,
+                        grace: addGrace ? '15%': undefined 
+                    }
+                } : {}
+            }
+        });
+    }
+
+    initDashboard();
+</script>
+</body>
+</html>
